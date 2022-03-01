@@ -51,13 +51,69 @@ namespace MigoAPI.Controllers
 
             if (!await _userRepo.CreateMemberAsync(user))
             {
-                ModelState.AddModelError("", "Something wrong ocurred during the process");
+                ModelState.AddModelError("", "Something wrong occurred during the process");
                 return StatusCode(500, ModelState);
             }
 
             return StatusCode(201, user);
         }
 
+        [HttpGet("{userId:int}", Name = "GetUserAsync")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(200, Type = typeof(User))]
+        [ProducesDefaultResponseType]
+        public async Task<IActionResult> GetUserAsync(int userId)
+        {
+            var user = await _userRepo.GetMemberAsync(userId);
 
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(user);
+        }
+
+        [HttpPut("{userId:int}", Name = "UpdateUserAsync")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(204)]
+        public async Task<IActionResult> UpdateUserAsync(int userId, [FromBody] User user)
+        {
+            if (user == null && userId <= 0)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!await _userRepo.MemberExistsAsync(userId))
+            {
+                return NotFound();
+            }
+
+            await _userRepo.UpdateMemberAsync(user);
+
+            return NoContent();
+        }
+
+        [HttpDelete("{userId:int}", Name = "DeleteUserAsync")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> DeleteUserAsync(int userId)
+        {
+            if (!await _userRepo.MemberExistsAsync(userId))
+            {
+                return NotFound();
+            }
+
+            var user = await _userRepo.GetMemberAsync(userId);
+
+            if (!await _userRepo.DeleteMemberAsync(user))
+            {
+                ModelState.AddModelError("", "Something wrong occurred during the process");
+                return StatusCode(500, ModelState);
+            }
+
+            return NoContent();
+        }
     }
 }
