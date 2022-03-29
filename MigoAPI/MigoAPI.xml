@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MigoAPI</name>
+    </assembly>
+    <members>
+        <member name="M:MigoAPI.Controllers.UsersController.GetUserAsync(System.Int32)">
+            <summary>
+            Get an User by his/her id
+            </summary>
+            <param name="userId">The id of the user you want to get</param>
+            <returns> An ActionResult type of User</returns>
+        </member>
+        <member name="T:MigoAPI.Models.User">
+            <summary>
+            An Author with Id, userName, password, firstName, lastName and Age fields
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.Id">
+            <summary>
+            The User's id
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.UserName">
+            <summary>
+            The User's user name
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.Password">
+            <summary>
+            The User's password
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.FirstName">
+            <summary>
+            The User's first name
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.LastName">
+            <summary>
+            The User's last name
+            </summary>
+        </member>
+        <member name="P:MigoAPI.Models.User.Age">
+            <summary>
+            The User's Age
+            </summary>
+        </member>
+    </members>
+</doc>

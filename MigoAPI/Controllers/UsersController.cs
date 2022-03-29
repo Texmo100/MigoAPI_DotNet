@@ -58,6 +58,11 @@ namespace MigoAPI.Controllers
             return StatusCode(201, user);
         }
 
+        /// <summary>
+        /// Get an User by his/her id
+        /// </summary>
+        /// <param name="userId">The id of the user you want to get</param>
+        /// <returns> An ActionResult type of User</returns>
         [HttpGet("{userId:int}", Name = "GetUserAsync")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(200, Type = typeof(User))]
