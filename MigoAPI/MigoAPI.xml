@@ -10,6 +10,7 @@
             </summary>
             <param name="userId">The id of the user you want to get</param>
             <returns> An ActionResult type of User</returns>
+            <response code="200">Returns the requested User</response>
         </member>
         <member name="T:MigoAPI.Models.User">
             <summary>

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,10 +34,15 @@ namespace MigoAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // This is needed just in case you are gonna use the respository pattern
             services.AddScoped<IRepository<User>, UserRepository>();
+
+            // This is the requiered Db Configuration using EntityFramework core
             services.AddDbContext<ApplicationDbContext>(
                 options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddControllers();
+
+            // This is the required OpenApi / Swagger configuration
             services.AddSwaggerGen(setupAction =>
             {
                 setupAction.SwaggerDoc(
@@ -63,6 +70,56 @@ namespace MigoAPI
 
                 setupAction.IncludeXmlComments(xmlCommentsFullPath);
             });
+
+            // This ensures that the API behaves correctly
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.InvalidModelStateResponseFactory = actionContext =>
+                {
+                    var actionExecutingContext = 
+                        actionContext as Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext;
+
+                    // If there are modelState errors & all keys were correctly
+                    // found/parsed we're dealing with validation errors
+                    if (actionContext.ModelState.ErrorCount > 0
+                        && actionExecutingContext?.ActionArguments.Count == actionContext.ActionDescriptor.Parameters.Count)
+                    {
+                        return new UnprocessableEntityObjectResult(actionContext.ModelState);
+                    }
+
+                    // If one of the keys wasn't correctly found/ couldn't parsed
+                    // We're dealing with null / unparsable input
+                    return new BadRequestObjectResult(actionContext.ModelState);
+
+                };
+            });
+
+            // This allows to the API return the media type correctly (JSON or XML format)
+            services.AddMvc(setupAction =>
+            {
+                // This allows to set globally these responses type attributes on each controller
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status400BadRequest));
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status406NotAcceptable));
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status500InternalServerError));
+                setupAction.Filters.Add(new ProducesDefaultResponseTypeAttribute());
+
+                // This line ensures that the response media type should be json or xml (as we specified here)
+                setupAction.ReturnHttpNotAcceptable = true;
+
+                // Returns a xml and json format
+                setupAction.OutputFormatters.Add(new XmlSerializerOutputFormatter());
+                var jsonOutPutFormatter = setupAction.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
+
+                if (jsonOutPutFormatter != null)
+                {
+                    // remove text/json as it isn't the approved media type
+                    // for working with JSON at API level
+                    if (jsonOutPutFormatter.SupportedMediaTypes.Contains("text/json"))
+                    {
+                        jsonOutPutFormatter.SupportedMediaTypes.Remove("text/json");
+                    }
+                }
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,6 +132,7 @@ namespace MigoAPI
 
             app.UseHttpsRedirection();
 
+            // This two configurations need to be added here in order to execute correctly Swagger UI (Graphic interface)
             app.UseSwagger();
 
             app.UseSwaggerUI(setupAction =>

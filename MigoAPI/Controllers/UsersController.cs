@@ -14,7 +14,11 @@ namespace MigoAPI.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [Consumes("application/json")]
+    [Produces("application/json", "application/xml")]
+    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+    //[ProducesResponseType(StatusCodes.Status406NotAcceptable)]
+    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public class UsersController : Controller
     {
         private readonly IRepository<User> _userRepo;
@@ -35,7 +39,6 @@ namespace MigoAPI.Controllers
         [ProducesResponseType(201, Type = typeof(User))]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateUserAsync([FromBody] User user)
         {
             if (user == null)
@@ -63,6 +66,7 @@ namespace MigoAPI.Controllers
         /// </summary>
         /// <param name="userId">The id of the user you want to get</param>
         /// <returns> An ActionResult type of User</returns>
+        /// <response code="200">Returns the requested User</response>
         [HttpGet("{userId:int}", Name = "GetUserAsync")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(200, Type = typeof(User))]
@@ -101,7 +105,6 @@ namespace MigoAPI.Controllers
 
         [HttpDelete("{userId:int}", Name = "DeleteUserAsync")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> DeleteUserAsync(int userId)
         {
