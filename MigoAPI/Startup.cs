@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,15 +45,35 @@ namespace MigoAPI
                 options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddControllers();
 
+            services.AddVersionedApiExplorer(setupAction => 
+            {
+                setupAction.GroupNameFormat = "'v'VV";
+            });
+
+            // Needed packages for Api versioning => ApiVersioning and versioningExplorer
+            services.AddApiVersioning(setupAction =>
+            {
+                setupAction.AssumeDefaultVersionWhenUnspecified = true;
+                setupAction.DefaultApiVersion = new ApiVersion(1, 0);
+                setupAction.ReportApiVersions = true;
+                //setupAction.ApiVersionReader = new HeaderApiVersionReader("api-version");
+                //setupAction.ApiVersionReader = new MediaTypeApiVersionReader();
+
+            });
+
+            var apiVersionDescriptionProvider = services.BuildServiceProvider().GetService<IApiVersionDescriptionProvider>();
+
             // This is the required OpenApi / Swagger configuration
             services.AddSwaggerGen(setupAction =>
             {
-                setupAction.SwaggerDoc(
-                    "MigoOpenAPISpecification",
+                foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)
+                {
+                    setupAction.SwaggerDoc(
+                    $"MigoOpenAPISpecification{description.GroupName}",
                     new Microsoft.OpenApi.Models.OpenApiInfo()
                     {
                         Title = "Migo API",
-                        Version = "1",
+                        Version = description.ApiVersion.ToString(),
                         Description = "Through this API you can acces to MIGO data",
                         Contact = new Microsoft.OpenApi.Models.OpenApiContact()
                         {
@@ -64,6 +87,31 @@ namespace MigoAPI
                             Url = new Uri("https://opensource.org/license/MIT")
                         }
                     });
+                }
+
+                setupAction.DocInclusionPredicate((documentName, apiDescription) =>
+                {
+                    var actionApiVersionModel = apiDescription.ActionDescriptor
+                    .GetApiVersionModel(ApiVersionMapping.Explicit | ApiVersionMapping.Implicit);
+
+                    if (actionApiVersionModel == null)
+                    {
+                        return true;
+                    }
+
+                    if (actionApiVersionModel.DeclaredApiVersions.Any())
+                    {
+                        return actionApiVersionModel.DeclaredApiVersions.Any(v =>
+                        $"MigoOpenAPISpecificationv{v.ToString()}" == documentName);
+                    }
+
+                    return actionApiVersionModel.ImplementedApiVersions.Any(v =>
+                    $"MigoOpenAPISpecificationv{v.ToString()}" == documentName);
+
+                });
+
+                //setupAction.OperationFilter<GetBookOperationFilter>();
+                //setupAction.OperationFilter<CreateBookOperationFilter>();
 
                 var xmlCommentsFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlCommentsFullPath = Path.Combine(AppContext.BaseDirectory, xmlCommentsFile);
@@ -123,7 +171,8 @@ namespace MigoAPI
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, 
+            IApiVersionDescriptionProvider apiVersionDescriptionProvider)
         {
             if (env.IsDevelopment())
             {
@@ -137,10 +186,17 @@ namespace MigoAPI
 
             app.UseSwaggerUI(setupAction =>
             {
-                setupAction.SwaggerEndpoint(
-                    "/swagger/MigoOpenAPISpecification/swagger.json",
-                    "Migo API");
-                setupAction.RoutePrefix = "";
+                foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)
+                {
+                    setupAction.SwaggerEndpoint($"/swagger/" +
+                        $"MigoOpenAPISpecification{description.GroupName}/swagger.json",
+                        description.GroupName.ToUpperInvariant());
+                    setupAction.RoutePrefix = "";
+                }
+                //setupAction.SwaggerEndpoint(
+                //    "/swagger/MigoOpenAPISpecification/swagger.json",
+                //    "Migo API");
+                //setupAction.RoutePrefix = "";
             });
 
             app.UseRouting();

@@ -12,6 +12,13 @@
             <returns> An ActionResult type of User</returns>
             <response code="200">Returns the requested User</response>
         </member>
+        <member name="M:MigoAPI.Controllers.UsersControllerV2.GetAllUsersAsync">
+            <summary>
+            Get the users (V2)
+            </summary>
+            <returns>An Actionresult with all the Users</returns>
+            <response code="200">Returns the list of Users</response>
+        </member>
         <member name="T:MigoAPI.Models.User">
             <summary>
             An Author with Id, userName, password, firstName, lastName and Age fields

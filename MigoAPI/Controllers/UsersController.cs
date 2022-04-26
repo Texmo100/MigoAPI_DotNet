@@ -13,7 +13,8 @@ using MigoAPI.Repository.IRepository;
 namespace MigoAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
+    //[Route("api/[Controller]")]
+    [Route("api/v{version:apiVersion}/users")]
     [Consumes("application/json")]
     [Produces("application/json", "application/xml")]
     //[ProducesResponseType(StatusCodes.Status400BadRequest)]
