@@ -12,6 +12,27 @@
             <returns> An ActionResult type of User</returns>
             <response code="200">Returns the requested User</response>
         </member>
+        <member name="M:MigoAPI.Controllers.UsersController.UpdateUserAsync(System.Int32,MigoAPI.Models.User)">
+            <summary>
+            Update an User
+            </summary>
+            <param name="userId"></param>
+            <param name="user"></param>
+            <returns>An ActionResult with no content</returns>
+            <remarks> Sample request (this request updates the entire user record)
+                PUT /users/userId
+                [
+                    {
+                        "UserName": "",
+                        "Password": "",
+                        "FirstName": "",
+                        "LastName": "",
+                        "Age": 0
+                    }
+                ]
+            </remarks>
+            <response code="204">Returns no content</response>
+        </member>
         <member name="T:MigoAPI.Models.User">
             <summary>
             An Author with Id, userName, password, firstName, lastName and Age fields

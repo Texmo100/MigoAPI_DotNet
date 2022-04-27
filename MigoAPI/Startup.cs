@@ -141,6 +141,14 @@ namespace MigoAPI
                     "/swagger/MigoOpenAPISpecification/swagger.json",
                     "Migo API");
                 setupAction.RoutePrefix = "";
+
+                // Swagger UI Customization
+                setupAction.DefaultModelsExpandDepth(2);
+                setupAction.DefaultModelRendering(Swashbuckle.AspNetCore.SwaggerUI.ModelRendering.Model);
+                setupAction.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+
+                setupAction.EnableDeepLinking();
+                setupAction.DisplayOperationId();
             });
 
             app.UseRouting();

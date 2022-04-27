@@ -28,14 +28,14 @@ namespace MigoAPI.Controllers
            _userRepo = userRepo;
         }
 
-        [HttpGet]
+        [HttpGet(Name = "GetAllUsersAsync")]
         [ProducesResponseType(200, Type = typeof(List<User>))]
         public async Task<IActionResult> GetAllUsersAsync()
         {
             return Ok(await _userRepo.GetAllMembersAsync());
         }
 
-        [HttpPost]
+        [HttpPost(Name = "CreateUserAsync")]
         [ProducesResponseType(201, Type = typeof(User))]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,6 +83,26 @@ namespace MigoAPI.Controllers
             return Ok(user);
         }
 
+
+        /// <summary>
+        /// Update an User
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="user"></param>
+        /// <returns>An ActionResult with no content</returns>
+        /// <remarks> Sample request (this request updates the entire user record)
+        ///     PUT /users/userId
+        ///     [
+        ///         {
+        ///             "UserName": "",
+        ///             "Password": "",
+        ///             "FirstName": "",
+        ///             "LastName": "",
+        ///             "Age": 0
+        ///         }
+        ///     ]
+        /// </remarks>
+        /// <response code="204">Returns no content</response>
         [HttpPut("{userId:int}", Name = "UpdateUserAsync")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(204)]
