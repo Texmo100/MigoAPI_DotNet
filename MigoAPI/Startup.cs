@@ -1,14 +1,18 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi.Models;
+using MigoAPI.Authentication;
 using MigoAPI.Data;
 using MigoAPI.Models;
 using MigoAPI.Repository;
@@ -34,8 +38,43 @@ namespace MigoAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // This allows to the API return the media type correctly (JSON or XML format)
+            services.AddMvc(setupAction =>
+            {
+                // This allows to set globally these responses type attributes on each controller
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status400BadRequest));
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status406NotAcceptable));
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status500InternalServerError));
+                setupAction.Filters.Add(new ProducesDefaultResponseTypeAttribute());
+
+                // This two lines are required too (Authentication feature)
+                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status401Unauthorized));
+                setupAction.Filters.Add(new AuthorizeFilter());
+
+                // This line ensures that the response media type should be json or xml (as we specified here)
+                setupAction.ReturnHttpNotAcceptable = true;
+
+                // Returns a xml and json format
+                setupAction.OutputFormatters.Add(new XmlSerializerOutputFormatter());
+                var jsonOutPutFormatter = setupAction.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
+
+                if (jsonOutPutFormatter != null)
+                {
+                    // remove text/json as it isn't the approved media type
+                    // for working with JSON at API level
+                    if (jsonOutPutFormatter.SupportedMediaTypes.Contains("text/json"))
+                    {
+                        jsonOutPutFormatter.SupportedMediaTypes.Remove("text/json");
+                    }
+                }
+            });
+
             // This is needed just in case you are gonna use the respository pattern
             services.AddScoped<IRepository<User>, UserRepository>();
+
+            // This service provides the authentication feature
+            services.AddAuthentication("Basic")
+                .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", null);
 
             // This is the requiered Db Configuration using EntityFramework core
             services.AddDbContext<ApplicationDbContext>(
@@ -65,6 +104,27 @@ namespace MigoAPI
                         }
                     });
 
+                setupAction.AddSecurityDefinition("basicAuth", new OpenApiSecurityScheme()
+                {
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "basic",
+                    Description = "Input your username and password to access this API"
+                });
+
+                setupAction.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme()
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "basicAuth"
+                            }
+                        }, new List<string>() 
+                    }
+                });
+
                 var xmlCommentsFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlCommentsFullPath = Path.Combine(AppContext.BaseDirectory, xmlCommentsFile);
 
@@ -93,33 +153,6 @@ namespace MigoAPI
 
                 };
             });
-
-            // This allows to the API return the media type correctly (JSON or XML format)
-            services.AddMvc(setupAction =>
-            {
-                // This allows to set globally these responses type attributes on each controller
-                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status400BadRequest));
-                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status406NotAcceptable));
-                setupAction.Filters.Add(new ProducesResponseTypeAttribute(StatusCodes.Status500InternalServerError));
-                setupAction.Filters.Add(new ProducesDefaultResponseTypeAttribute());
-
-                // This line ensures that the response media type should be json or xml (as we specified here)
-                setupAction.ReturnHttpNotAcceptable = true;
-
-                // Returns a xml and json format
-                setupAction.OutputFormatters.Add(new XmlSerializerOutputFormatter());
-                var jsonOutPutFormatter = setupAction.OutputFormatters.OfType<SystemTextJsonOutputFormatter>().FirstOrDefault();
-
-                if (jsonOutPutFormatter != null)
-                {
-                    // remove text/json as it isn't the approved media type
-                    // for working with JSON at API level
-                    if (jsonOutPutFormatter.SupportedMediaTypes.Contains("text/json"))
-                    {
-                        jsonOutPutFormatter.SupportedMediaTypes.Remove("text/json");
-                    }
-                }
-            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -142,6 +175,9 @@ namespace MigoAPI
                     "Migo API");
                 setupAction.RoutePrefix = "";
             });
+
+            // Set this for authentication feature
+            app.UseAuthentication();
 
             app.UseRouting();
 
